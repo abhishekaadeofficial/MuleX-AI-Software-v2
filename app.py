@@ -8,6 +8,7 @@ from fpdf import FPDF
 import tempfile, os
 from datetime import datetime
 from database.database import conn, cursor
+from utils.ai_summary import generate_ai_response
 
 # ─── Load Model ───────────────────────────────────────────────
 model = joblib.load("model/fraud_model.pkl")
@@ -217,7 +218,17 @@ if page == "🏠 Home":
     col2.metric("Fraud Probability", f"{prob[1]*100:.1f}%")
     col3.metric("Risk Level", risk_label)
     st.info(f"📌 Risk Reason: {risk_reason}")
+    st.markdown("---")
+st.subheader("🤖 MuleX AI Assistant")
 
+query = st.text_input(
+    "Ask MuleX AI about fraud activity"
+)
+
+if query:
+    response = generate_ai_response(query)
+    st.success(response)
+    
 # ══════════════════════════════════════════════════════════════
 # PAGE 2 — FRAUD ALERTS
 # ══════════════════════════════════════════════════════════════
