@@ -13,8 +13,9 @@ import google.generativeai as genai
 
 # ─── Load Model ───────────────────────────────────────────────
 model = joblib.load("model/fraud_model.pkl")
-# Gemini AI Setup
-genai.configure(api_key="AIzaSyCvxK3BVKI1fTsk0rCPNAFPRwxG7KEHREg")
+
+# Gemini AI Setup — key loaded from secrets (never hardcoded)
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -75,10 +76,8 @@ def assign_risk(score):
     else:
         return "🟢 LOW", "Normal Banking Activity"
 
-# ─── Gemini AI Fraud Analysis ─────────────────────────────
-
+# ─── Gemini AI Fraud Analysis ─────────────────────────────────
 def generate_ai_analysis(score, risk):
-
     prompt = f"""
     You are an AI Cybersecurity Fraud Analyst.
 
@@ -95,17 +94,14 @@ def generate_ai_analysis(score, risk):
 
     Keep response professional and short.
     """
-
     response = gemini_model.generate_content(prompt)
-
     return response.text
-    
+
 # ─── PDF Generator ────────────────────────────────────────────
 def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
     pdf = FPDF()
     pdf.add_page()
 
-    # Header
     pdf.set_font("Arial", "B", 20)
     pdf.set_text_color(0, 180, 255)
     pdf.cell(0, 12, "MuleX AI - Fraud Investigation Report", ln=True, align="C")
@@ -115,13 +111,11 @@ def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
     pdf.cell(0, 8, f"Generated: {datetime.now().strftime('%d %B %Y, %H:%M:%S')}  |  Bank of India - Cyber Fraud Division", ln=True, align="C")
     pdf.ln(5)
 
-    # Divider
     pdf.set_draw_color(0, 180, 255)
     pdf.set_line_width(0.8)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(6)
 
-    # Summary Section
     pdf.set_font("Arial", "B", 13)
     pdf.set_text_color(0, 180, 255)
     pdf.cell(0, 10, "Executive Summary", ln=True)
@@ -147,7 +141,6 @@ def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
 
     pdf.ln(5)
 
-    # Risk Breakdown
     pdf.set_font("Arial", "B", 13)
     pdf.set_text_color(0, 180, 255)
     pdf.cell(0, 10, "Risk Category Breakdown", ln=True)
@@ -175,7 +168,6 @@ def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
 
     pdf.ln(5)
 
-    # Top Fraud Reasons
     pdf.set_font("Arial", "B", 13)
     pdf.set_text_color(0, 180, 255)
     pdf.cell(0, 10, "Top Fraud Indicators Detected", ln=True)
@@ -194,12 +186,10 @@ def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
 
     pdf.ln(5)
 
-    # Footer
     pdf.set_font("Arial", "I", 9)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(0, 8, "CONFIDENTIAL - For internal use only. MuleX AI (C) 2026 | IIT Hyderabad Hackathon Submission", ln=True, align="C")
 
-    # Save to temp file
     path = os.path.join(tempfile.gettempdir(), "MuleX_Report.pdf")
     pdf.output(path)
     return path
@@ -247,17 +237,16 @@ if page == "🏠 Home":
     col2.metric("Fraud Probability", f"{prob[1]*100:.1f}%")
     col3.metric("Risk Level", risk_label)
     st.info(f"📌 Risk Reason: {risk_reason}")
+
     st.markdown("---")
-st.subheader("🤖 MuleX AI Assistant")
+    st.subheader("🤖 MuleX AI Assistant")
 
-query = st.text_input(
-    "Ask MuleX AI about fraud activity"
-)
+    query = st.text_input("Ask MuleX AI about fraud activity")
 
-if query:
-    response = generate_ai_response(query)
-    st.success(response)
-    
+    if query:
+        response = generate_ai_response(query)
+        st.success(response)
+
 # ══════════════════════════════════════════════════════════════
 # PAGE 2 — FRAUD ALERTS
 # ══════════════════════════════════════════════════════════════
@@ -288,18 +277,12 @@ elif page == "📤 Upload & Predict":
     st.title("📤 Upload CSV & Predict Fraud")
     st.markdown("---")
 
-    uploaded_file = st.file_uploader(
-        "Upload transaction CSV file",
-        type=["csv"]
-    )
+    uploaded_file = st.file_uploader("Upload transaction CSV file", type=["csv"])
 
     if uploaded_file:
         df = pd.read_csv(uploaded_file, index_col=0)
 
-        st.success(
-            f"✅ File loaded: {df.shape[0]} rows, {df.shape[1]} columns"
-        )
-
+        st.success(f"✅ File loaded: {df.shape[0]} rows, {df.shape[1]} columns")
         st.dataframe(df.head(), use_container_width=True)
 
         if st.button("🤖 Run AI Prediction"):
@@ -310,7 +293,6 @@ elif page == "📤 Upload & Predict":
 
             if df.shape[1] > expected:
                 df = df.iloc[:, :expected]
-
             elif df.shape[1] < expected:
                 for i in range(expected - df.shape[1]):
                     df[f"pad_{i}"] = 0
@@ -318,11 +300,7 @@ elif page == "📤 Upload & Predict":
             preds = model.predict(df)
             probs = model.predict_proba(df)[:, 1]
 
-            df["Prediction"] = [
-                "🔴 FRAUD" if p == 1 else "🟢 SAFE"
-                for p in preds
-            ]
-
+            df["Prediction"] = ["🔴 FRAUD" if p == 1 else "🟢 SAFE" for p in preds]
             df["Fraud Score"] = (probs * 100).round(1)
 
             risk_levels = []
@@ -333,89 +311,63 @@ elif page == "📤 Upload & Predict":
                 risk_levels.append(rl)
                 risk_reasons.append(rr)
 
-            df["Risk Level"] = risk_levels
+            df["Risk Level"]  = risk_levels
             df["Risk Reason"] = risk_reasons
 
             for i in range(len(df)):
-              cursor.execute("""
-              INSERT INTO fraud_logs
-              (account, amount, risk, prediction)
-            VALUES (?, ?, ?, ?)
+                cursor.execute("""
+                    INSERT INTO fraud_logs
+                    (account, amount, risk, prediction)
+                    VALUES (?, ?, ?, ?)
                 """, (
-                f"ACC{i}",
-                float(df["Fraud Score"].iloc[i]),
-              df["Risk Level"].iloc[i],
-             df["Prediction"].iloc[i]
-    ))
+                    f"ACC{i}",
+                    float(df["Fraud Score"].iloc[i]),
+                    df["Risk Level"].iloc[i],
+                    df["Prediction"].iloc[i]
+                ))
 
-conn.commit()
+            conn.commit()
 
             st.markdown("---")
             st.subheader("🔍 Prediction Results")
 
             st.dataframe(
-                df[
-                    [
-                        "Prediction",
-                        "Fraud Score",
-                        "Risk Level",
-                        "Risk Reason"
-                    ]
-                ].head(20),
+                df[["Prediction", "Fraud Score", "Risk Level", "Risk Reason"]].head(20),
                 use_container_width=True
             )
 
-            # ─── AI Investigation Summary ─────────────────────
+            # ─── Gemini AI Investigation ──────────────────────
 
-st.markdown("---")
-st.subheader("🤖 Gemini AI Investigation")
+            st.markdown("---")
+            st.subheader("🤖 Gemini AI Investigation")
 
-with st.spinner("Analyzing transaction with Gemini AI..."):
+            with st.spinner("Analyzing transaction with Gemini AI..."):
+                summary_text = generate_ai_analysis(
+                    df["Fraud Score"].iloc[0],
+                    df["Risk Level"].iloc[0]
+                )
 
-    summary_text = generate_ai_analysis(
-        df["Fraud Score"].iloc[0],
-        df["Risk Level"].iloc[0]
-    )
-
-st.success(summary_text)
+            st.success(summary_text)
 
             fraud_count = int(sum(preds))
-            safe_count = len(preds) - fraud_count
-            total = len(preds)
+            safe_count  = len(preds) - fraud_count
+            total       = len(preds)
 
             col1, col2, col3 = st.columns(3)
-
-            col1.metric(
-                "Fraud Transactions",
-                f"{fraud_count} 🔴"
-            )
-
-            col2.metric(
-                "Safe Transactions",
-                f"{safe_count} 🟢"
-            )
-
-            col3.metric(
-                "Total Analyzed",
-                str(total)
-            )
+            col1.metric("Fraud Transactions", f"{fraud_count} 🔴")
+            col2.metric("Safe Transactions",  f"{safe_count} 🟢")
+            col3.metric("Total Analyzed",     str(total))
 
             summary = {
-                "HIGH": df["Risk Level"].str.contains("HIGH").sum(),
+                "HIGH":   df["Risk Level"].str.contains("HIGH").sum(),
                 "MEDIUM": df["Risk Level"].str.contains("MEDIUM").sum(),
-                "LOW": df["Risk Level"].str.contains("LOW").sum(),
+                "LOW":    df["Risk Level"].str.contains("LOW").sum(),
             }
 
             st.markdown("---")
             st.subheader("📄 Download Investigation Report")
 
-            pdf_path = generate_pdf(
-                summary,
-                fraud_count,
-                safe_count,
-                total,
-                94.7
-            )
+            pdf_path = generate_pdf(summary, fraud_count, safe_count, total, 94.7)
 
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
@@ -431,9 +383,8 @@ st.success(summary_text)
             st.success("✅ PDF report ready for download!")
 
     else:
-        st.info(
-            "👆 Upload your DataSet.csv to run batch fraud prediction."
-        )
+        st.info("👆 Upload your DataSet.csv to run batch fraud prediction.")
+
 # ══════════════════════════════════════════════════════════════
 # PAGE 4 — FRAUD NETWORK
 # ══════════════════════════════════════════════════════════════
@@ -462,8 +413,8 @@ elif page == "🕸️ Fraud Network":
     fig, ax = plt.subplots(figsize=(10, 7))
     fig.patch.set_facecolor("#0e1117")
     ax.set_facecolor("#0e1117")
-    pos          = nx.spring_layout(G, seed=42)
-    node_colors  = ["#ff4444" if n == "MasterMule" else "#00d4ff" for n in G.nodes()]
+    pos         = nx.spring_layout(G, seed=42)
+    node_colors = ["#ff4444" if n == "MasterMule" else "#00d4ff" for n in G.nodes()]
     nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=1200, ax=ax)
     nx.draw_networkx_labels(G, pos, font_color="white", font_size=7, ax=ax)
     nx.draw_networkx_edges(G, pos, edge_color="#ffaa00", arrows=True, arrowsize=20, width=1.5, ax=ax)
