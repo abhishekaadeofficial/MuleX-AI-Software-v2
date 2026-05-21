@@ -9,9 +9,14 @@ import tempfile, os
 from datetime import datetime
 from database.database import conn, cursor
 from utils.ai_summary import generate_ai_response
+import google.generativeai as genai
 
 # ─── Load Model ───────────────────────────────────────────────
 model = joblib.load("model/fraud_model.pkl")
+# Gemini AI Setup
+genai.configure(api_key="AIzaSyCvxK3BVKI1fTsk0rCPNAFPRwxG7KEHREg")
+
+gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ─── Page Config ──────────────────────────────────────────────
 st.set_page_config(page_title="MuleX AI", page_icon="🛡️", layout="wide")
@@ -338,30 +343,17 @@ conn.commit()
 
             # ─── AI Investigation Summary ─────────────────────
 
-            def generate_ai_summary(score, risk):
-                return f"""
-AI detected suspicious banking activity.
+st.markdown("---")
+st.subheader("🤖 Gemini AI Investigation")
 
-Risk Level: {risk}
+with st.spinner("Analyzing transaction with Gemini AI..."):
 
-Possible reasons:
-• Unusual transaction amount
-• Mule account linkage
-• Rapid fund transfers
+    summary_text = generate_ai_analysis(
+        df["Fraud Score"].iloc[0],
+        df["Risk Level"].iloc[0]
+    )
 
-Recommended Action:
-Freeze account and verify KYC immediately.
-"""
-
-            st.markdown("---")
-            st.subheader("🤖 AI Investigation Summary")
-
-            summary_text = generate_ai_summary(
-                df["Fraud Score"].iloc[0],
-                df["Risk Level"].iloc[0]
-            )
-
-            st.warning(summary_text)
+st.success(summary_text)
 
             fraud_count = int(sum(preds))
             safe_count = len(preds) - fraud_count
