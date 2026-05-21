@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+matplotlib
+networkx
+fpdf
+joblib
+scikit-learn
+google-generativeai
