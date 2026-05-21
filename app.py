@@ -10,6 +10,7 @@ from datetime import datetime
 from database.database import conn, cursor
 from utils.ai_summary import generate_ai_response
 import google.generativeai as genai
+from utils.risk_engine import assign_risk
 
 # ─── Load Model ───────────────────────────────────────────────
 model = joblib.load("model/fraud_model.pkl")
@@ -67,14 +68,6 @@ st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
     st.session_state.logged_in = False
     st.rerun()
-
-def assign_risk(score):
-    if score >= 80:
-        return "🔴 HIGH", "Possible Mule Account"
-    elif score >= 50:
-        return "🟡 MEDIUM", "Suspicious Transaction Pattern"
-    else:
-        return "🟢 LOW", "Normal Banking Activity"
 
 # ─── Gemini AI Fraud Analysis ─────────────────────────────────
 def generate_ai_analysis(score, risk):
