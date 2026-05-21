@@ -67,7 +67,6 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# ─── Risk Scoring Function ────────────────────────────────────
 def assign_risk(score):
     if score >= 80:
         return "🔴 HIGH", "Possible Mule Account"
@@ -76,6 +75,31 @@ def assign_risk(score):
     else:
         return "🟢 LOW", "Normal Banking Activity"
 
+# ─── Gemini AI Fraud Analysis ─────────────────────────────
+
+def generate_ai_analysis(score, risk):
+
+    prompt = f"""
+    You are an AI Cybersecurity Fraud Analyst.
+
+    Analyze this banking transaction.
+
+    Fraud Score: {score}
+    Risk Level: {risk}
+
+    Give:
+    1. Fraud reason
+    2. Threat severity
+    3. Recommended bank action
+    4. Investigation advice
+
+    Keep response professional and short.
+    """
+
+    response = gemini_model.generate_content(prompt)
+
+    return response.text
+    
 # ─── PDF Generator ────────────────────────────────────────────
 def generate_pdf(summary, fraud_count, safe_count, total, accuracy):
     pdf = FPDF()
